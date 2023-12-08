@@ -1,3 +1,4 @@
 dataset/
 dataset_fog/
 .h5
+*.h5
