@@ -2,3 +2,5 @@ dataset/
 dataset_fog/
 .h5
 *.h5
+seg/
+bdd100k/
