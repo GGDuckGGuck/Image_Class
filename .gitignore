@@ -4,3 +4,4 @@ dataset_fog/
 *.h5
 seg/
 bdd100k/
+*.zip
