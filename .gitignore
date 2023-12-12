@@ -5,3 +5,4 @@ dataset_fog/
 seg/
 bdd100k/
 *.zip
+data/
