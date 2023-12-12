@@ -4,6 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn import utils as sk_utils
 import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import tensorflow as tf
 from tensorflow import keras
@@ -39,6 +40,7 @@ def load_image(file_path, is_x=False):
         image = tf.image.resize(image, image_size, method='nearest', antialias=True)
     return image
 
+
 # 훈련 데이터셋을 불러옴
 
 # 이미지 파일 경로의 목록을 얻음
@@ -67,6 +69,7 @@ Y_train = np.array(Y_train)
 # 255는 알 수 없는 객체를 나타냄
 Y_train[Y_train == 255] = 19
 
+
 # 검증 데이터셋을 불러옴 (1000개의 관측치)
 
 # 이미지 파일 경로의 목록을 얻음
@@ -94,6 +97,12 @@ X_val = np.array(X_val)
 Y_val = np.array(Y_val)
 # 255는 알 수 없는 객체를 나타냄
 Y_val[Y_val == 255] = 19
+
+
+print('X train:', X_train.shape)
+print('Y train:', Y_train.shape)
+print('X val:', X_val.shape)
+print('Y val:', Y_val.shape)
 
 
 # 유틸리티 함수들
@@ -142,9 +151,47 @@ def colorize_image(image, color_dict):
     return colored_image
 
 
-# free the RAM by collecting the garbage
+
+# 훈련 세트에서 일부 샘플 시각화
+plt.figure(figsize=(10, 40)) # 그림의 크기 설정 (가로 10, 세로 40)
+s, e = 80, 84  # 시작 인덱스와 종료 인덱스 설정
+index = 1  # 그래프를 그릴 때 사용할 인덱스 초기화
+
+# X_train과 Y_train에서 시작 인덱스와 종료 인덱스 사이의 데이터를 순회하며 그래프 그리기
+for i, j in zip(X_train[s:e], Y_train[s:e]):
+    plt.subplot(10, 2, index)  # 10행 2열의 서브플롯에서 현재 인덱스 위치에 그래프 그리기
+    plt.imshow(i)  # 이미지 i를 그래프로 표현
+    plt.title('Ground truth image')  # 그래프 제목 설정 ('Ground truth image'는 '실제 이미지'를 의미합니다.)
+    
+    plt.subplot(10, 2, index+1)  # 같은 방식으로 마스크 이미지에 대한 그래프를 그립니다.
+    plt.imshow(colorize_image(j, color_dict))  # 마스크 이미지를 색깔별로 구분하여 그래프로 표현
+    plt.title('Ground truth mask')  # 그래프 제목 설정 ('Ground truth mask'는 '실제 마스크 이미지'를 의미합니다.)
+    
+    index += 2  # 다음 그래프를 그릴 위치를 위해 인덱스를 2씩 증가시킵니다.
+
+
+    # 검증 세트에서 일부 샘플 시각화
+plt.figure(figsize=(10, 40)) # 그림의 크기 설정 (가로 10, 세로 40)
+s, e = 10, 14  # 시작 인덱스와 종료 인덱스 설정
+index = 1  # 그래프를 그릴 때 사용할 인덱스 초기화
+
+# X_val과 Y_val에서 시작 인덱스와 종료 인덱스 사이의 데이터를 순회하며 그래프 그리기
+for i, j in zip(X_val[s:e], Y_val[s:e]):
+    plt.subplot(10, 2, index)  # 10행 2열의 서브플롯에서 현재 인덱스 위치에 그래프 그리기
+    plt.imshow(i)  # 이미지 i를 그래프로 표현
+    plt.title('Ground truth image')  # 그래프 제목 설정 ('Ground truth image'는 '실제 이미지'를 의미합니다.)
+    
+    plt.subplot(10, 2, index+1)  # 같은 방식으로 마스크 이미지에 대한 그래프를 그립니다.
+    plt.imshow(colorize_image(j, color_dict))  # 마스크 이미지를 색깔별로 구분하여 그래프로 표현
+    plt.title('Ground truth mask')  # 그래프 제목 설정 ('Ground truth mask'는 '실제 마스크 이미지'를 의미합니다.)
+    
+    index += 2  # 다음 그래프를 그릴 위치를 위해 인덱스를 2씩 증가시킵니다.
+
+
+    # free the RAM by collecting the garbage
 import gc
 gc.collect()
+
 
 from keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Conv2DTranspose, Concatenate
 from keras.models import Model
@@ -217,8 +264,15 @@ model = unet()
 model.compile(optimizer='adam', loss=keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
 model.summary()
 
+
+# model = tf.keras.models.load_model('asad_epoch5.h5')
+# # 최적화 알고리즘: Adam, 학습률: 0.0001, 손실 함수로: SparseCategoricalCrossentropy, 평가 지표로: 정확도
+# model.compile(optimizer=keras.optimizers.Adam(0.0001), loss=keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
+# model.summary()
+
+
 # train the model
-epochs = 1
+epochs = 66
 batch_size = 16
 
 model.fit(
@@ -229,9 +283,16 @@ model.fit(
     batch_size=batch_size
 )
 
-Y_pred = model.predict(X_val)  
+
+Y_pred = model.predict(X_val)  # 검증 데이터셋(X_val)에 대해 모델을 이용해서 예측을 수행하고, 그 결과를 Y_pred에 저장합니다.
 
 Y_pred = np.argmax(Y_pred, axis=-1).reshape(-1, *image_size, 1)  
+# 예측 결과(Y_pred) 중에서 마지막 차원(-1)을 기준으로 가장 큰 값의 인덱스를 반환합니다. 
+# 이는 각 픽셀이 어떤 클래스에 속하는지 결정하는 과정입니다.
+# reshape 함수를 이용해서 예측 결과의 형태를 변경합니다. -1은 남은 차원을 모두 채우라는 의미이고, *image_size는 원래 이미지의 크기를 의미합니다. 
+# 마지막의 1은 채널 수를 의미하며, 이 경우에는 1개의 채널을 가집니다.
+
+
 
 # 검증 세트에서 일부 결과 시각화
 plt.figure(figsize=(15, 40))  # 그림의 크기 설정 (가로 15, 세로 40)
@@ -289,3 +350,8 @@ accuracy, miou = compute_metrics(Y_val, Y_pred)
 # 메트릭 값 출력
 print("Accuracy:", accuracy)
 print("Mean IoU:", miou)
+
+
+# save the model
+model.save('asad_epoch66.h5')
+
