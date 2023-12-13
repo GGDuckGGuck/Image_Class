@@ -2,7 +2,7 @@ from PIL import Image, ImageFilter, ImageEnhance
 import numpy as np
 
 # 기존 이미지 열기
-image = Image.open('data/0a56c2e8-e46ca9b7.jpg')
+image = Image.open('data/original.jpg')
 
 # 이미지를 numpy 배열로 변환
 data = np.array(image)
@@ -18,4 +18,4 @@ foggy_image_data = data * (1 - fog_intensity) + white_layer * fog_intensity
 foggy_image = Image.fromarray(foggy_image_data.astype(np.uint8))
 
 # 결과 이미지를 저장합니다.
-foggy_image.save('data/foggy_image.jpg')
+foggy_image.save('data/make_foggy_image.jpg')
